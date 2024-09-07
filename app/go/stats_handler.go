@@ -232,10 +232,10 @@ func getLivestreamStatisticsHandler(c echo.Context) error {
 	if err := tx.GetContext(ctx, &rank, `
 		SELECT row_num
 		FROM (
-			SELECT id, ROW_NUMBER() OVER (ORDER BY score DESC) AS row_num
+			SELECT id, ROW_NUMBER() OVER (ORDER BY score DESC, id DESC) AS row_num
 			FROM (
 				SELECT DISTINCT l.id AS id,
-					COUNT(*) OVER (PARTITION BY l.id) + IFNULL(SUM(lc.tip) OVER (PARTITION BY l.id), 0) AS score
+					COUNT(r.id) OVER (PARTITION BY l.id) + IFNULL(SUM(lc.tip) OVER (PARTITION BY l.id), 0) AS score
 				FROM livestreams l
 				LEFT JOIN reactions r ON l.id = r.livestream_id
 				LEFT JOIN livecomments lc ON l.id = lc.livestream_id

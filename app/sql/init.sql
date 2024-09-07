@@ -10,3 +10,7 @@ ALTER TABLE `tags` auto_increment = 1;
 ALTER TABLE `livecomments` auto_increment = 1;
 ALTER TABLE `livestreams` auto_increment = 1;
 ALTER TABLE `users` auto_increment = 1;
+
+USE `isudns`;
+ALTER TABLE `records` ADD INDEX disabled_name_domain_id_idx(`disabled`, `name`, `domain_id`);
+ALTER TABLE `records` ADD INDEX disabled_name_domain_id_idx(`disabled`, `type`, `name`);

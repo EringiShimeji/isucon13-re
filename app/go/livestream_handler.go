@@ -509,7 +509,7 @@ func fillLivestreamResponse(ctx context.Context, tx *sqlx.Tx, livestreamModel Li
 		return Livestream{}, err
 	}
 
-	tags := make([]Tag, 0, len(tagModels))
+	tags := make([]Tag, len(tagModels))
 	for i, m := range tagModels {
 		tags[i] = Tag{
 			ID:   m.ID,

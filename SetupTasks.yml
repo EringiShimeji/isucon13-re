@@ -32,6 +32,15 @@ tasks:
       - task: import-webapp
       - task: collect-config
 
+  continue:
+    desc: Run necessary tasks to continue, import-webapp and collect-config will not be executed.
+    deps:
+      - enable-autocompletion
+      - gitconfig
+      - taskfile-symlink
+    cmds:
+      - task: install-tools
+
   install-tools:
     desc: Install all tools
     cmds:

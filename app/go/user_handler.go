@@ -420,7 +420,7 @@ func fillUserResponse(ctx context.Context, tx *sqlx.Tx, userModel UserModel) (Us
 	themeModel := cache.getTheme(userModel.ID)
 
 	iconHash, ok := cache.getIconHashById(userModel.ID)
-	if ok {
+	if !ok {
 		var image []byte
 		if err := tx.GetContext(ctx, &image, "SELECT image FROM icons WHERE user_id = ?", userModel.ID); err != nil {
 			if !errors.Is(err, sql.ErrNoRows) {

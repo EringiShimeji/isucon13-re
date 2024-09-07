@@ -3,30 +3,42 @@ package main
 import "sync"
 
 type Cache struct {
-	iconHashCache sync.Map // user_id -> iconHash
-	themeCache    sync.Map // user_id -> *ThemeModel
+	idIconHash   sync.Map // user_id -> iconHash
+	nameIconHash sync.Map // username -> iconHash
+	theme        sync.Map // user_id -> *ThemeModel
 }
 
 var cache Cache
 
-func (c *Cache) getIconHash(userID int64) []byte {
-	if v, ok := c.iconHashCache.Load(userID); ok {
-		return v.([]byte)
+func (c *Cache) getIconHashById(userID int64) (string, bool) {
+	if v, ok := c.idIconHash.Load(userID); ok {
+		return v.(string), true
 	}
-	return nil
+	return "", false
 }
 
-func (c *Cache) setIconHash(userID int64, image []byte) {
-	c.iconHashCache.Store(userID, image)
+func (c *Cache) setIconHashWithId(userID int64, hash string) {
+	c.idIconHash.Store(userID, hash)
+}
+
+func (c *Cache) getIconHashByName(username string) (string, bool) {
+	if v, ok := c.nameIconHash.Load(username); ok {
+		return v.(string), true
+	}
+	return "", false
+}
+
+func (c *Cache) setIconHashWithName(username string, hash string) {
+	c.nameIconHash.Store(username, hash)
 }
 
 func (c *Cache) getTheme(userID int64) *ThemeModel {
-	if v, ok := c.themeCache.Load(userID); ok {
+	if v, ok := c.theme.Load(userID); ok {
 		return v.(*ThemeModel)
 	}
 	return nil
 }
 
 func (c *Cache) setTheme(userID int64, theme *ThemeModel) {
-	c.themeCache.Store(userID, theme)
+	c.theme.Store(userID, theme)
 }

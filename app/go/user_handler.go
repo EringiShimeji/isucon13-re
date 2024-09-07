@@ -29,6 +29,7 @@ const (
 )
 
 var fallbackImage = "../img/NoImage.jpg"
+var fallbackImageHash = "d9f8294e9d895f81ce62e73dc7d5dff862a4fa40bd4e0fecf53f7526a8edcac0"
 
 type UserModel struct {
 	ID             int64  `db:"id"`
@@ -96,6 +97,14 @@ func getIconHandler(c echo.Context) error {
 	}
 	defer tx.Rollback()
 
+	if cIconHash := c.Request().Header["If-None-Match"]; cIconHash != nil {
+		if iconHash, ok := cache.getIconHashByName(username); ok {
+			if iconHash == cIconHash[0] {
+				return c.NoContent(http.StatusNotModified)
+			}
+		}
+	}
+
 	var user UserModel
 	if err := tx.GetContext(ctx, &user, "SELECT * FROM users WHERE name = ?", username); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -107,11 +116,17 @@ func getIconHandler(c echo.Context) error {
 	var image []byte
 	if err := tx.GetContext(ctx, &image, "SELECT image FROM icons WHERE user_id = ?", user.ID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
+			cache.setIconHashWithId(user.ID, fallbackImageHash)
+			cache.setIconHashWithName(username, fallbackImageHash)
 			return c.File(fallbackImage)
 		} else {
 			return echo.NewHTTPError(http.StatusInternalServerError, "failed to get user icon: "+err.Error())
 		}
 	}
+
+	iconHash := fmt.Sprintf("%x", sha256.Sum256(image))
+	cache.setIconHashWithId(user.ID, iconHash)
+	cache.setIconHashWithName(username, iconHash)
 
 	return c.Blob(http.StatusOK, "image/jpeg", image)
 }
@@ -128,6 +143,7 @@ func postIconHandler(c echo.Context) error {
 	sess, _ := session.Get(defaultSessionIDKey, c)
 	// existence already checked
 	userID := sess.Values[defaultUserIDKey].(int64)
+	username := sess.Values[defaultUsernameKey].(string)
 
 	var req *PostIconRequest
 	if err := json.NewDecoder(c.Request().Body).Decode(&req); err != nil {
@@ -158,8 +174,9 @@ func postIconHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
-	iconHash := sha256.Sum256(req.Image)
-	cache.setIconHash(userID, iconHash[:])
+	iconHash := fmt.Sprintf("%x", sha256.Sum256(req.Image))
+	cache.setIconHashWithId(userID, iconHash)
+	cache.setIconHashWithName(username, iconHash)
 
 	return c.JSON(http.StatusCreated, &PostIconResponse{
 		ID: iconID,
@@ -403,8 +420,8 @@ func verifyUserSession(c echo.Context) error {
 func fillUserResponse(ctx context.Context, tx *sqlx.Tx, userModel UserModel) (User, error) {
 	themeModel := cache.getTheme(userModel.ID)
 
-	iconHash := cache.getIconHash(userModel.ID)
-	if iconHash == nil {
+	iconHash, ok := cache.getIconHashById(userModel.ID)
+	if ok {
 		var image []byte
 		if err := tx.GetContext(ctx, &image, "SELECT image FROM icons WHERE user_id = ?", userModel.ID); err != nil {
 			if !errors.Is(err, sql.ErrNoRows) {
@@ -415,9 +432,9 @@ func fillUserResponse(ctx context.Context, tx *sqlx.Tx, userModel UserModel) (Us
 				return User{}, err
 			}
 		}
-		h := sha256.Sum256(image)
-		iconHash = h[:]
-		cache.setIconHash(userModel.ID, iconHash)
+		iconHash = fmt.Sprintf("%x", sha256.Sum256(image))
+		cache.setIconHashWithId(userModel.ID, iconHash)
+		cache.setIconHashWithName(userModel.Name, iconHash)
 	}
 
 	user := User{

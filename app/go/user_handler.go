@@ -96,7 +96,8 @@ func getIconHandler(c echo.Context) error {
 	}
 	defer tx.Rollback()
 
-	if cIconHash := c.Request().Header["If-None-Match"]; cIconHash != nil {
+	cIconHash := c.Request().Header["If-None-Match"]
+	if cIconHash != nil {
 		if iconHash, ok := cache.getIconHashByName(username); ok {
 			if iconHash == cIconHash[0] {
 				return c.NoContent(http.StatusNotModified)
@@ -122,10 +123,6 @@ func getIconHandler(c echo.Context) error {
 			return echo.NewHTTPError(http.StatusInternalServerError, "failed to get user icon: "+err.Error())
 		}
 	}
-
-	iconHash := fmt.Sprintf("%x", sha256.Sum256(image))
-	cache.setIconHashWithId(user.ID, iconHash)
-	cache.setIconHashWithName(username, iconHash)
 
 	return c.Blob(http.StatusOK, "image/jpeg", image)
 }

@@ -18,6 +18,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 
 	"github.com/gorilla/sessions"
+	pprotein "github.com/kaz/pprotein/integration/echov4"
 	"github.com/labstack/echo-contrib/session"
 	echolog "github.com/labstack/gommon/log"
 )
@@ -112,6 +113,10 @@ func initializeHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to initialize: "+err.Error())
 	}
 
+	if _, err := http.Get("http://localhost:9000/api/group/collect"); err != nil {
+		c.Logger().Warnf("failed to request pprotein: %w", err)
+	}
+
 	c.Request().Header.Add("Content-Type", "application/json;charset=utf-8")
 	return c.JSON(http.StatusOK, InitializeResponse{
 		Language: "golang",
@@ -183,6 +188,8 @@ func main() {
 	e.GET("/api/payment", GetPaymentResult)
 
 	e.HTTPErrorHandler = errorResponseHandler
+
+	pprotein.Integrate(e)
 
 	// DB接続
 	conn, err := connectDB(e.Logger)

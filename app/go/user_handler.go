@@ -86,15 +86,7 @@ type PostIconResponse struct {
 }
 
 func getIconHandler(c echo.Context) error {
-	ctx := c.Request().Context()
-
 	username := c.Param("username")
-
-	tx, err := dbConn.BeginTxx(ctx, nil)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to begin transaction: "+err.Error())
-	}
-	defer tx.Rollback()
 
 	cIconHash := c.Request().Header["If-None-Match"]
 	if cIconHash != nil {

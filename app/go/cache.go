@@ -8,11 +8,23 @@ type Cache struct {
 	theme         sync.Map // user_id -> *ThemeModel
 	idIconImage   sync.Map // user_id -> image
 	nameIconImage sync.Map // username -> image
+	livestream    sync.Map // id -> LivestreamModel
 
 	iconID int64
 }
 
 var cache Cache
+
+func getOrInsertMap[V interface{}](m *sync.Map, key any, f func() (V, error)) (V, error) {
+	if v, ok := m.Load(key); ok {
+		return v.(V), nil
+	}
+	v, err := f()
+	if err == nil {
+		m.Store(key, v)
+	}
+	return v, err
+}
 
 func (c *Cache) getIconHashById(userID int64) (string, bool) {
 	if v, ok := c.idIconHash.Load(userID); ok {

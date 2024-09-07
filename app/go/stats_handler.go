@@ -227,39 +227,23 @@ func getLivestreamStatisticsHandler(c echo.Context) error {
 		}
 	}
 
-	var livestreams []*LivestreamModel
-	if err := tx.SelectContext(ctx, &livestreams, "SELECT * FROM livestreams"); err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get livestreams: "+err.Error())
-	}
+	var rank int64
 
-	// ランク算出
-	var ranking LivestreamRanking
-	for _, livestream := range livestreams {
-		var reactions int64
-		if err := tx.GetContext(ctx, &reactions, "SELECT COUNT(*) FROM livestreams l INNER JOIN reactions r ON l.id = r.livestream_id WHERE l.id = ?", livestream.ID); err != nil && !errors.Is(err, sql.ErrNoRows) {
-			return echo.NewHTTPError(http.StatusInternalServerError, "failed to count reactions: "+err.Error())
-		}
-
-		var totalTips int64
-		if err := tx.GetContext(ctx, &totalTips, "SELECT IFNULL(SUM(l2.tip), 0) FROM livestreams l INNER JOIN livecomments l2 ON l.id = l2.livestream_id WHERE l.id = ?", livestream.ID); err != nil && !errors.Is(err, sql.ErrNoRows) {
-			return echo.NewHTTPError(http.StatusInternalServerError, "failed to count tips: "+err.Error())
-		}
-
-		score := reactions + totalTips
-		ranking = append(ranking, LivestreamRankingEntry{
-			LivestreamID: livestream.ID,
-			Score:        score,
-		})
-	}
-	sort.Sort(ranking)
-
-	var rank int64 = 1
-	for i := len(ranking) - 1; i >= 0; i-- {
-		entry := ranking[i]
-		if entry.LivestreamID == livestreamID {
-			break
-		}
-		rank++
+	if err := tx.GetContext(ctx, &rank, `
+		SELECT row_num
+		FROM (
+			SELECT id, ROW_NUMBER() OVER (ORDER BY score DESC) AS row_num
+			FROM (
+				SELECT DISTINCT l.id AS id,
+					COUNT(*) OVER (PARTITION BY l.id) + IFNULL(SUM(lc.tip) OVER (PARTITION BY l.id), 0) AS score
+				FROM livestreams l
+				LEFT JOIN reactions r ON l.id = r.livestream_id
+				LEFT JOIN livecomments lc ON l.id = lc.livestream_id
+			) AS s1
+		) AS s2
+		WHERE id = ?
+    `, livestreamID); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to rank: "+err.Error())
 	}
 
 	// 視聴者数算出

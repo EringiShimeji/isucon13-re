@@ -158,6 +158,9 @@ func postIconHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
+	iconHash := sha256.Sum256(req.Image)
+	cache.setIconHash(userID, iconHash[:])
+
 	return c.JSON(http.StatusCreated, &PostIconResponse{
 		ID: iconID,
 	})
@@ -418,6 +421,7 @@ func fillUserResponse(ctx context.Context, tx *sqlx.Tx, userModel UserModel) (Us
 		}
 		h := sha256.Sum256(image)
 		iconHash = h[:]
+		cache.setIconHash(userModel.ID, iconHash)
 	}
 
 	user := User{

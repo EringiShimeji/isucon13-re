@@ -494,13 +494,11 @@ func fillLivestreamResponse(ctx context.Context, tx *sqlx.Tx, livestreamModel Li
 		return Livestream{}, err
 	}
 
-	var livestreamTagModels []*LivestreamTagModel
-	if err := tx.SelectContext(ctx, &livestreamTagModels, "SELECT * FROM livestream_tags WHERE livestream_id = ?", livestreamModel.ID); err != nil {
-		return Livestream{}, err
-	}
-
 	var tags []Tag
-	if err := tx.SelectContext(ctx, &tags, "SELECT t.id AS id, name FROM tags t JOIN livestream_tags l ON t.id = l.tag_id"); err != nil {
+	if err := tx.SelectContext(ctx,
+		&tags,
+		"SELECT t.id AS id, name FROM tags t JOIN livestream_tags l ON t.id = l.tag_id AND l.livestream_id = ?",
+		livestreamModel.ID); err != nil {
 		return Livestream{}, err
 	}
 

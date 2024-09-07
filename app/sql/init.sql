@@ -12,5 +12,8 @@ ALTER TABLE `livestreams` auto_increment = 1;
 ALTER TABLE `users` auto_increment = 1;
 
 USE `isudns`;
-ALTER TABLE `records` ADD INDEX disabled_name_domain_id_idx(`disabled`, `name`, `domain_id`);
-ALTER TABLE `records` ADD INDEX disabled_name_domain_id_idx(`disabled`, `type`, `name`);
+ALTER TABLE `records` DROP INDEX domain_id_name_disabled_idx;
+ALTER TABLE `records` DROP INDEX name_type_disabled_idx;
+
+ALTER TABLE `records` ADD INDEX domain_id_name_disabled_idx(`domain_id`, `name`, disabled);
+ALTER TABLE `records` ADD INDEX name_type_disabled_idx(`name`, `type`, `disabled`);

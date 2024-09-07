@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
 	"os/exec"
 	"time"
 
@@ -427,14 +426,12 @@ func fillUserResponse(ctx context.Context, tx *sqlx.Tx, userModel UserModel) (Us
 			if !errors.Is(err, sql.ErrNoRows) {
 				return User{}, err
 			}
-			image, err = os.ReadFile(fallbackImage)
-			if err != nil {
-				return User{}, err
-			}
+			iconHash = fallbackImageHash
+		} else {
+			iconHash = fmt.Sprintf("%x", sha256.Sum256(image))
+			cache.setIconHashWithId(userModel.ID, iconHash)
+			cache.setIconHashWithName(userModel.Name, iconHash)
 		}
-		iconHash = fmt.Sprintf("%x", sha256.Sum256(image))
-		cache.setIconHashWithId(userModel.ID, iconHash)
-		cache.setIconHashWithName(userModel.Name, iconHash)
 	}
 
 	user := User{
@@ -446,7 +443,7 @@ func fillUserResponse(ctx context.Context, tx *sqlx.Tx, userModel UserModel) (Us
 			ID:       themeModel.ID,
 			DarkMode: themeModel.DarkMode,
 		},
-		IconHash: fmt.Sprintf("%x", iconHash),
+		IconHash: iconHash,
 	}
 
 	return user, nil

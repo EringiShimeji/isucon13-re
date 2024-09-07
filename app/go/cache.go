@@ -3,9 +3,13 @@ package main
 import "sync"
 
 type Cache struct {
-	idIconHash   sync.Map // user_id -> iconHash
-	nameIconHash sync.Map // username -> iconHash
-	theme        sync.Map // user_id -> *ThemeModel
+	idIconHash    sync.Map // user_id -> iconHash
+	nameIconHash  sync.Map // username -> iconHash
+	theme         sync.Map // user_id -> *ThemeModel
+	idIconImage   sync.Map // user_id -> image
+	nameIconImage sync.Map // username -> image
+
+	iconID int64
 }
 
 var cache Cache
@@ -41,4 +45,28 @@ func (c *Cache) getTheme(userID int64) *ThemeModel {
 
 func (c *Cache) setTheme(userID int64, theme *ThemeModel) {
 	c.theme.Store(userID, theme)
+}
+
+func (c *Cache) getIconImageById(userID int64) []byte {
+	if v, ok := c.nameIconImage.Load(userID); ok {
+		return v.([]byte)
+	}
+	return nil
+}
+
+func (c *Cache) setIconImageById(userID int64, image []byte) {
+	c.nameIconImage.Store(userID, image)
+	c.iconID++
+}
+
+func (c *Cache) getIconImageByName(username string) []byte {
+	if v, ok := c.nameIconImage.Load(username); ok {
+		return v.([]byte)
+	}
+	return nil
+}
+
+func (c *Cache) setIconImageByName(username string, image []byte) {
+	c.nameIconImage.Store(username, image)
+	c.iconID++
 }

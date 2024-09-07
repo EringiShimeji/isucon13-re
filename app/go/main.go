@@ -113,6 +113,8 @@ func initializeHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to initialize: "+err.Error())
 	}
 
+	cache = Cache{}
+
 	if _, err := http.Get("http://localhost:9000/api/group/collect"); err != nil {
 		c.Logger().Warnf("failed to request pprotein: %w", err)
 	}

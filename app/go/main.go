@@ -250,6 +250,12 @@ func main() {
 		log.Fatal(err)
 	}
 	e.Listener = listener
+	defer func() {
+		err := listener.Close()
+		if err != nil {
+			log.Fatalf("Failed to close listener: %s.", err)
+		}
+	}()
 
 	server := new(http.Server)
 	if err := e.StartServer(server); err != nil {

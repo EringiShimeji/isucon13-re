@@ -469,7 +469,7 @@ func getLivecommentReportsHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get livecomment reports: "+err.Error())
 	}
 
-	reports := make([]LivecommentReport, len(reportModels))
+	reports := make([]LivecommentReport, 0, len(reportModels))
 	for i := range reportModels {
 		report, err := fillLivecommentReportResponse(ctx, tx, *reportModels[i])
 		if err != nil {
@@ -478,7 +478,7 @@ func getLivecommentReportsHandler(c echo.Context) error {
 			}
 			return echo.NewHTTPError(http.StatusInternalServerError, "failed to fill livecomment report: "+err.Error())
 		}
-		reports[i] = report
+		reports = append(reports, report)
 	}
 
 	if err := tx.Commit(); err != nil {

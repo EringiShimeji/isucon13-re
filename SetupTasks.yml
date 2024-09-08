@@ -40,6 +40,8 @@ tasks:
       - taskfile-symlink
     cmds:
       - task: install-tools
+      - mv "{{.WEBAPP_DIR}}" "{{.WEBAPP_DIR}}.bak"
+      - ln -s {{.REPO_DIR}}/app "{{.WEBAPP_DIR}}"
 
   install-tools:
     desc: Install all tools

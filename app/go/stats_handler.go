@@ -89,18 +89,14 @@ func getUserStatisticsHandler(c echo.Context) error {
 	var rank int64 = 1
 	if err := tx.GetContext(ctx, &rank, `
 		SELECT row_num
-		FROM (
-			SELECT n, ROW_NUMBER() OVER (ORDER BY score DESC, n DESC) AS row_num
-			FROM (
-				SELECT DISTINCT u.id AS id, u.name AS n,
-					COUNT(r.id) OVER (PARTITION BY u.id) + IFNULL(SUM(lc.tip) OVER (PARTITION BY u.id), 0) AS score
-				FROM users u
-				LEFT JOIN livestreams l ON u.id = l.user_id
-				LEFT JOIN reactions r ON l.id = r.livestream_id
-				LEFT JOIN livecomments lc ON l.id = lc.livestream_id
-			) AS s1
-		) AS s2
-		WHERE n = ?
+		FROM (SELECT u.name,
+					 ROW_NUMBER() OVER (ORDER BY COUNT(r.id) + IFNULL(SUM(lc.tip), 0) DESC, u.name DESC) AS row_num
+			  FROM users u
+					 LEFT JOIN livestreams l ON u.id = l.user_id
+					 LEFT JOIN reactions r ON l.id = r.livestream_id
+					 LEFT JOIN livecomments lc ON l.id = lc.livestream_id
+			  GROUP BY u.name) AS s
+		WHERE s.name = ?
     `, username); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to rank: "+err.Error())
 	}

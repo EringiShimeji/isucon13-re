@@ -1,20 +1,32 @@
 package main
 
-import "sync"
+import (
+	"sync"
+)
 
 type Cache struct {
-	idIconHash    sync.Map // user_id -> iconHash
-	nameIconHash  sync.Map // username -> iconHash
-	theme         sync.Map // user_id -> *ThemeModel
-	idIconImage   sync.Map // user_id -> image
-	nameIconImage sync.Map // username -> image
-	livestream    sync.Map // id -> LivestreamModel
-	user          sync.Map // id -> UserModel
+	idIconHash       sync.Map // user_id -> iconHash
+	nameIconHash     sync.Map // username -> iconHash
+	theme            sync.Map // user_id -> *ThemeModel
+	idIconImage      sync.Map // user_id -> image
+	nameIconImage    sync.Map // username -> image
+	livestream       sync.Map // id -> LivestreamModel
+	user             sync.Map // id -> UserModel
+	livestreamIdTags sync.Map // livestream_id -> []Tag
+	tag              sync.Map // id -> Tag
 
 	iconID int64
 }
 
 var cache Cache
+
+func (c *Cache) setTag(tagID int64, tag Tag) {
+	c.tag.Store(tagID, tag)
+}
+
+func (c *Cache) removeLivestreamIdTags(livestreamID int64) {
+	c.livestreamIdTags.Delete(livestreamID)
+}
 
 func getOrInsertMap[V interface{}](m *sync.Map, key any, f func() (V, error)) (V, error) {
 	if v, ok := m.Load(key); ok {

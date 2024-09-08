@@ -166,6 +166,7 @@ func reserveLivestreamHandler(c echo.Context) error {
 	if err := tx.Commit(); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
+	cache.removeLivestreamIdTags(livestreamID)
 
 	return c.JSON(http.StatusCreated, livestream)
 }
@@ -498,13 +499,17 @@ func fillLivestreamResponse(ctx context.Context, tx *sqlx.Tx, livestreamModel Li
 		return Livestream{}, err
 	}
 
-	tags := make([]Tag, 0)
-	if err := tx.SelectContext(
-		ctx,
-		&tags,
-		"SELECT t.id AS id, name FROM livestream_tags l JOIN tags t ON l.tag_id = t.id WHERE l.livestream_id = ?",
-		livestreamModel.ID,
-	); err != nil {
+	tags, err := getOrInsertMap(&cache.livestreamIdTags, livestreamModel.ID, func() ([]Tag, error) {
+		t := make([]Tag, 0)
+		err := tx.SelectContext(
+			ctx,
+			&t,
+			"SELECT t.id AS id, name FROM livestream_tags l JOIN tags t ON l.tag_id = t.id WHERE l.livestream_id = ?",
+			livestreamModel.ID,
+		)
+		return t, err
+	})
+	if err != nil {
 		return Livestream{}, err
 	}
 

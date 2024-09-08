@@ -114,14 +114,22 @@ func initializeHandler(c echo.Context) error {
 	}
 
 	cache = Cache{}
-
 	var themeModels []ThemeModel
 	if err := dbConn.Select(&themeModels, "SELECT * FROM themes"); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to select themes: "+err.Error())
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to cache themes: "+err.Error())
 	}
 
 	for _, t := range themeModels {
 		cache.setTheme(t.UserID, &t)
+	}
+
+	var tags []Tag
+	if err := dbConn.Select(&tags, "SELECT * FROM tags"); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to cache tags: "+err.Error())
+	}
+
+	for _, t := range tags {
+		cache.setTag(t.ID, t)
 	}
 
 	if _, err := http.Get("http://localhost:9000/api/group/collect"); err != nil {

@@ -394,15 +394,22 @@ func moderateHandler(c echo.Context) error {
 			return echo.NewHTTPError(http.StatusInternalServerError, "failed to get livecomments: "+err.Error())
 		}
 
-		if _, err := tx.ExecContext(ctx,
-			`
+		for _, livecomment := range livecomments {
+			query := `
 			DELETE FROM livecomments
-			WHERE livestream_id = ? AND comment LIKE ?
-			`,
-			livestreamID,
-			fmt.Sprintf("%%%s%%", ngword.Word),
-		); err != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError, "failed to delete old livecomments that hit spams: "+err.Error())
+			WHERE
+			id = ? AND
+			livestream_id = ? AND
+			(SELECT COUNT(*)
+			FROM
+			(SELECT ? AS text) AS texts
+			INNER JOIN
+			(SELECT CONCAT('%', ?, '%')	AS pattern) AS patterns
+			ON texts.text LIKE patterns.pattern) >= 1;
+			`
+			if _, err := tx.ExecContext(ctx, query, livecomment.ID, livestreamID, livecomment.Comment, ngword.Word); err != nil {
+				return echo.NewHTTPError(http.StatusInternalServerError, "failed to delete old livecomments that hit spams: "+err.Error())
+			}
 		}
 	}
 

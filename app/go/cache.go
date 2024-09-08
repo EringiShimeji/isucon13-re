@@ -9,6 +9,7 @@ type Cache struct {
 	idIconImage   sync.Map // user_id -> image
 	nameIconImage sync.Map // username -> image
 	livestream    sync.Map // id -> LivestreamModel
+	user          sync.Map // id -> UserModel
 
 	iconID int64
 }

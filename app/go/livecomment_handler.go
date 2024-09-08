@@ -388,6 +388,12 @@ func moderateHandler(c echo.Context) error {
 
 	// NGワードにヒットする過去の投稿も全削除する
 	for _, ngword := range ngwords {
+		// ライブコメント一覧取得
+		var livecomments []*LivecommentModel
+		if err := tx.SelectContext(ctx, &livecomments, "SELECT * FROM livecomments"); err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, "failed to get livecomments: "+err.Error())
+		}
+
 		if _, err := tx.ExecContext(ctx,
 			`
 			DELETE FROM livecomments
